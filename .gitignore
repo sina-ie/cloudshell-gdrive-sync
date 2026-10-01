@@ -1,2 +1,7 @@
 *.log
 .env
+
+# Test & Temporary artifacts
+test_*.txt
+phase*_test.txt
+*.tmp

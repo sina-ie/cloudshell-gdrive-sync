@@ -3,43 +3,51 @@ set -Eeuo pipefail
 
 # ==============================================================================
 # Cloud Shell & Google Drive Unified FUSE Mount
-# پیاده‌سازی فاز ۲ و ۳: اتصال فایل‌سیستم بلادرنگ و کش VFS
+# Real-time FUSE Mount Layer with VFS Caching
 # ==============================================================================
 
 REMOTE_NAME="gdrive"
 REMOTE_FOLDER="Cloudshell_Backup"
-MOUNT_POINT="${HOME}/drive_workspace"
+REAL_MOUNT_POINT="/tmp/drive_workspace"
+SYMLINK_POINT="${HOME}/drive_workspace"
 LOG_FILE="${HOME}/cloudshell-gdrive-sync/rclone_mount.log"
 CACHE_DIR="${HOME}/.cache/rclone"
 
 check_fuse() {
     if ! command -v fusermount3 >/dev/null 2>&1 && ! command -v fusermount >/dev/null 2>&1; then
-        echo "[!] ابزار FUSE یافت نشد. در حال نصب fuse3..."
+        echo "[!] FUSE utility not found. Installing fuse3 package..."
         sudo apt-get update -qq && sudo apt-get install -y -qq fuse3
     fi
 }
 
 is_mounted() {
-    mountpoint -q "${MOUNT_POINT}" 2>/dev/null
+    grep -qs "${REAL_MOUNT_POINT}" /proc/mounts 2>/dev/null && mountpoint -q "${REAL_MOUNT_POINT}" 2>/dev/null
 }
 
 main() {
-    echo "==> بررسی وضعیت پیش‌نیازها..."
+    echo "==> Checking prerequisites..."
     check_fuse
 
     if is_mounted; then
-        echo "[✓] نقطه اتصال ${MOUNT_POINT} هم‌اکنون فعال و مانت شده است."
+        ln -sfn "${REAL_MOUNT_POINT}" "${SYMLINK_POINT}"
+        echo "[✓] Mount point ${REAL_MOUNT_POINT} is already active."
         exit 0
     fi
 
-    mkdir -p "${MOUNT_POINT}"
+    # Clean up stale/broken transport endpoints before mounting
+    if grep -qs "${REAL_MOUNT_POINT}" /proc/mounts 2>/dev/null; then
+        fusermount3 -u -z "${REAL_MOUNT_POINT}" 2>/dev/null || sudo umount -l "${REAL_MOUNT_POINT}" 2>/dev/null || true
+        sleep 0.5
+    fi
+
+    mkdir -p "${REAL_MOUNT_POINT}"
     mkdir -p "$(dirname "${LOG_FILE}")"
     mkdir -p "${CACHE_DIR}"
 
-    echo "==> در حال اجرای rclone mount به صورت پس‌زمینه (Daemon)..."
+    echo "==> Starting rclone FUSE mount in background daemon mode..."
     
-    # اجرای مانت FUSE با پارامترهای بهینه‌سازی دیسک و ترافیک شبکه
-    rclone mount "${REMOTE_NAME}:${REMOTE_FOLDER}" "${MOUNT_POINT}" \
+    # Mount Google Drive with local VFS cache optimization
+    rclone mount "${REMOTE_NAME}:${REMOTE_FOLDER}" "${REAL_MOUNT_POINT}" \
         --cache-dir="${CACHE_DIR}" \
         --vfs-cache-mode full \
         --vfs-cache-max-age 24h \
@@ -53,23 +61,25 @@ main() {
         --log-file="${LOG_FILE}" \
         --log-level NOTICE
 
-    # اعتبارسنجی اتصال موفق
+    # Validate mount state
     local attempts=0
     while ! is_mounted; do
         sleep 0.5
         attempts=$((attempts + 1))
         if [ "${attempts}" -ge 20 ]; then
-            echo "[✗] خطا در مانت کردن گوگل درایو. لاگ خطا:"
+            echo "[✗] Failed to mount Google Drive. Recent error logs:"
             tail -n 10 "${LOG_FILE}"
             exit 1
         fi
     done
 
+    ln -sfn "${REAL_MOUNT_POINT}" "${SYMLINK_POINT}"
+
     echo "=========================================================="
-    echo "[✓] فضای ذخیره‌سازی ابری با موفقیت متصل شد!"
-    echo "مسیر دسترسی در کلود شل: ${MOUNT_POINT}"
-    echo "پوشه مقصد در گوگل درایو: ${REMOTE_FOLDER}"
-    echo "فایل لاگ: ${LOG_FILE}"
+    echo "[✓] Cloud storage workspace mounted successfully!"
+    echo "Workspace:     ${SYMLINK_POINT} -> ${REAL_MOUNT_POINT}"
+    echo "Remote Target: ${REMOTE_NAME}:${REMOTE_FOLDER}"
+    echo "Log File:      ${LOG_FILE}"
     echo "=========================================================="
 }
 
