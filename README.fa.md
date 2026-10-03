@@ -36,7 +36,6 @@ cloudshell-gdrive-sync/
 ├── setup_project.sh      # Private workspace generator for GitHub
 ├── README.md             # Main repository guide
 ├── README.fa.md          # Supplementary engineering specifications
-├── CHAT_HISTORY.md       # Technical handover and architecture changelog
 ├── legacy_scripts/       # Archived v1 batch scripts (pull.sh, sync.sh)
 └── .gitignore            # Repository artifact ignore rules
 ```
@@ -45,7 +44,12 @@ cloudshell-gdrive-sync/
 
 ## Quick Deployment Guide
 
-### 1. Install Dependencies
+### 1. Automated Installation
+```bash
+cd ~/cloudshell-gdrive-sync && ./install.sh
+```
+
+### 2. Manual Step-by-Step Installation
 ```bash
 sudo apt-get update -qq && sudo apt-get install -y -qq fuse3 rclone
 ```
@@ -83,7 +87,9 @@ fi
 
 # 3. Safely unmount upon session exit
 _cleanup_gdrive_mount() {
-    if [ -x "${HOME}/cloudshell-gdrive-sync/unmount.sh" ]; then
+    local shell_count
+    shell_count=$(pgrep -u "${USER}" -x bash 2>/dev/null | wc -l)
+    if [ "${shell_count}" -le 1 ] && [ -x "${HOME}/cloudshell-gdrive-sync/unmount.sh" ]; then
         "${HOME}/cloudshell-gdrive-sync/unmount.sh" >/dev/null 2>&1
     fi
 }

@@ -5,7 +5,6 @@ A production-grade, real-time, bidirectional filesystem integration between **Go
 [!Language: Bash](https://www.gnu.org/software/bash/)
 [!Engine: rclone](https://rclone.org/)
 [!Platform: Google Cloud Shell](https://cloud.google.com/shell)
-[!Documentation: Architecture Guide](README.fa.md)
 
 ---
 
@@ -59,13 +58,13 @@ This project mounts Google Drive as a local POSIX-compliant virtual filesystem. 
 
 ```text
 cloudshell-gdrive-sync/
+├── install.sh            # Automated one-step setup and persistence script
 ├── mount.sh              # Core daemon mounting script with VFS configuration
 ├── unmount.sh            # Graceful and fallback unmount coordinator
 ├── health_check.sh       # Continuous probe and self-healing watchdog daemon
 ├── setup_project.sh      # GitHub workspace project initialization script
 ├── README.md             # Primary project documentation
 ├── README.fa.md          # Supplementary architecture & deep-dive operations guide
-├── CHAT_HISTORY.md       # Complete AI assistant session log & continuation guide
 ├── legacy_scripts/       # Archived legacy batch sync scripts (pull.sh, sync.sh)
 └── .gitignore            # Clean git exclusion rules
 ```
@@ -106,7 +105,9 @@ fi
 
 # 3. Clean unmount on session exit
 _cleanup_gdrive_mount() {
-    if [ -x "${HOME}/cloudshell-gdrive-sync/unmount.sh" ]; then
+    local shell_count
+    shell_count=$(pgrep -u "${USER}" -x bash 2>/dev/null | wc -l)
+    if [ "${shell_count}" -le 1 ] && [ -x "${HOME}/cloudshell-gdrive-sync/unmount.sh" ]; then
         "${HOME}/cloudshell-gdrive-sync/unmount.sh" >/dev/null 2>&1
     fi
 }

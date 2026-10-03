@@ -1,6 +1,6 @@
-# Cloud Shell & Google Drive Sync - AI Chat History & Continuation Guide
+# Cloud Shell & Google Drive Sync - Architecture Evolution & Internal Log
 
-**Repository:** `sina-ie/cloudshell-gdrive-sync`  
+**Repository:** `sina-ie/cloudshell-gdrive-sync`
 **Target Release:** `v2.1.0`  
 **Architecture State:** Production-Ready Real-Time FUSE Mount Layer  
 
@@ -19,17 +19,17 @@
 - Introduced state signal files (`/tmp/.gdrive_sync_error`, `/tmp/.gdrive_sync_success`) for `PROMPT_COMMAND` status banners.
 - Scheduled operations with `nice -n 19` to preserve Cloud Shell compute responsiveness.
 
-### Release v2.0.0: Initial Virtual Filesystem (FUSE) Migration
-- Replaced batch synchronization with real-time `rclone mount` using FUSE3.
-- Identified Cloud Shell disk-quota parser crashes when mounted within `$HOME`.
-- Uncovered dangling transport endpoint failures (`ENOTCONN`) during network drops.
+### Release v2.0.0: Initial Virtual Filesystem (FUSE) Architecture
+- Migrated storage backend from batch synchronization to real-time `rclone mount`.
+- Encountered `/google/devshell/bashrc.google` multi-line quota calculation crashes.
+- Encountered transport endpoint disconnections (`ENOTCONN`) upon network timeout.
 
 ### Current Architecture (v2.1.0)
 - POSIX-compliant virtual filesystem powered by `rclone mount` with FUSE3 and VFS disk caching (`--vfs-cache-mode full`).
 - Raw mount isolated at `/tmp/drive_workspace` with a clean symlink at `~/drive_workspace` to bypass Cloud Shell's internal `df` calculation error.
 - Dedicated watchdog daemon (`health_check.sh --daemon`) probing I/O responsiveness every 60s with automatic remounting and process cleanup.
 - Local VFS cache capped at `2GB` (`--vfs-cache-max-size 2G`) to protect the 5GB home quota.
-- Clean, standardized English documentation across all repository assets.
+- Standardized English documentation across all repository assets.
 
 ---
 
@@ -63,4 +63,4 @@
 To continue development in future sessions:
 1. Check mount status: `grep -qs /tmp/drive_workspace /proc/mounts && ls -la ~/drive_workspace`
 2. Check watchdog daemon: `pgrep -fa "health_check.sh"`
-3. Core files: `mount.sh`, `unmount.sh`, `health_check.sh`, `README.md`, `RELEASE_NOTES.md`.
+3. Note: All private drafts, experimental logs, and development scratchpads are quarantined inside the `private/` folder (git-ignored).
