@@ -10,14 +10,14 @@ All notable changes to this project are documented below in accordance with [Kee
 - **Environment Setup:** Basic project initialization helper for repository directories.
 
 ### Operational Evaluation & Readiness
-- **Operational Status:** Functional for manual, single-user batch transfers.
-- **Verified Workflows:** Basic ad-hoc file pulls and pushes run cleanly when executed sequentially.
+- **Operational Status:** Legacy / Deprecated. Functional only for ad-hoc, manual single-user batch transfers.
+- **Verified Workflows:** Direct execution of `pull.sh` and `sync.sh`.
 
 ### Deficiencies & Known Bugs
-- **No Concurrency Controls:** Concurrent script invocations triggered overlapping rclone processes, risking index and file corruption.
-- **Sync Latency:** Updates required manual command triggers or terminal exit hooks, resulting in data desynchronization during development.
-- **Destructive Sync Hazards:** One-way `rclone sync` mirroring posed a high risk of wiping valid remote files if local files were deleted or uncommitted.
-- **No Network Resilience:** Network interruptions abruptly terminated processes without reporting meaningful diagnostics to active terminals.
+- **No Concurrency Guard:** Simultaneous script triggers caused race conditions and corrupted transfer states.
+- **Sync Latency:** File updates remained invisible to editors until manual batch triggers finished.
+- **Mirroring Hazards:** One-way `rclone sync` risked permanently deleting remote data if local files were deleted.
+- **Zero Network Fault Tolerance:** Network hiccups terminated operations immediately without diagnostics.
 
 ---
 
@@ -76,3 +76,20 @@ All notable changes to this project are documented below in accordance with [Kee
 
 ### Deficiencies & Known Bugs
 - None identified in supported environments.
+
+---
+
+## Release v2.1.1: Production Polish & Unified Architecture Specification
+
+### Added
+- **Unified Quick Start Matrix:** Restored missing step 2 (`rclone config`) in `README.md` and added clear Dual Option setup instructions (One-Click Installer vs. Manual Setup).
+- **All-English Architecture Reference:** Fully converted `README.fa.md` into a formal operational engineering specification in English.
+- **Subshell & Descriptor Audit:** Confirmed all scripts close internal mutex file descriptors (`200>&-`, `201>&-`) across subshells and background processes.
+
+### Operational Evaluation & Readiness
+- **Operational Status:** Production-Ready (Verified on Google Cloud Shell).
+- **Integrity:** Zero orphaned mounts, clean process exit, and full POSIX compatibility inside Cloud Shell Editor (VS Code).
+
+### Environmental Constraints & Known Limitations
+- **Ephemeral Container `/tmp` Storage:** In Cloud Shell, `/tmp` is wiped upon VM rebuild or prolonged inactivity. The automated session hook in `~/.bashrc` transparently restores the mount on login.
+- **Headless Browser Requirement:** Headless OAuth token exchanges require generating the token on a workstation with `rclone authorize "drive"`.

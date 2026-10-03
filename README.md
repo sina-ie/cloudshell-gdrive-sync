@@ -73,8 +73,20 @@ cloudshell-gdrive-sync/
 
 ## Quick Start
 
+### Option A: Automated One-Click Installation (Recommended)
+Run the automated installer to check dependencies, configure shell persistence, and mount:
+```bash
+cd ~/cloudshell-gdrive-sync
+chmod +x install.sh
+./install.sh
+```
+
+---
+
+### Option B: Manual Step-by-Step Setup
+
 ### 1. Prerequisites
-Install `rclone` and `fuse3` in your Google Cloud Shell environment:
+Install `rclone` and `fuse3`:
 ```bash
 sudo apt-get update -qq && sudo apt-get install -y -qq fuse3 rclone
 ```

@@ -1,7 +1,7 @@
 # Cloud Shell & Google Drive Sync - Architecture Evolution & Internal Log
 
 **Repository:** `sina-ie/cloudshell-gdrive-sync`
-**Target Release:** `v2.1.0`  
+**Target Release:** `v2.1.1`  
 **Architecture State:** Production-Ready Real-Time FUSE Mount Layer  
 
 ---
@@ -29,7 +29,7 @@
 - Raw mount isolated at `/tmp/drive_workspace` with a clean symlink at `~/drive_workspace` to bypass Cloud Shell's internal `df` calculation error.
 - Dedicated watchdog daemon (`health_check.sh --daemon`) probing I/O responsiveness every 60s with automatic remounting and process cleanup.
 - Local VFS cache capped at `2GB` (`--vfs-cache-max-size 2G`) to protect the 5GB home quota.
-- Standardized English documentation across all repository assets.
+- Standardized English documentation and dual automated/manual setup paths.
 
 ---
 

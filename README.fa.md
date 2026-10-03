@@ -1,6 +1,6 @@
-# Cloud Shell & Google Drive Architecture & Engineering Guide (FUSE VFS)
+# Cloud Shell & Google Drive Engineering & Operations Specification (FUSE VFS)
 
-A resilient, real-time, bidirectional filesystem integration connecting **Google Drive** to **Google Cloud Shell** using `rclone`, `FUSE3`, and full VFS local caching with autonomous self-healing capabilities.
+An in-depth technical specification and operational reference manual for the real-time, bidirectional filesystem integration connecting **Google Drive** to **Google Cloud Shell** using `rclone`, `FUSE3`, and full local VFS caching with autonomous self-healing capabilities.
 
 ---
 
