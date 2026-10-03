@@ -5,7 +5,7 @@ A production-grade, real-time, bidirectional filesystem integration between **Go
 [!Language: Bash](https://www.gnu.org/software/bash/)
 [!Engine: rclone](https://rclone.org/)
 [!Platform: Google Cloud Shell](https://cloud.google.com/shell)
-[!Language: Persian README](README.fa.md)
+[!Documentation: Architecture Guide](README.fa.md)
 
 ---
 
@@ -62,9 +62,9 @@ cloudshell-gdrive-sync/
 ├── mount.sh              # Core daemon mounting script with VFS configuration
 ├── unmount.sh            # Graceful and fallback unmount coordinator
 ├── health_check.sh       # Continuous probe and self-healing watchdog daemon
-├── setup_project.sh      # Initial environment bootstrap script
-├── README.md             # Full English documentation
-├── README.fa.md          # Full Persian documentation
+├── setup_project.sh      # GitHub workspace project initialization script
+├── README.md             # Primary project documentation
+├── README.fa.md          # Supplementary architecture & deep-dive operations guide
 ├── CHAT_HISTORY.md       # Complete AI assistant session log & continuation guide
 ├── legacy_scripts/       # Archived legacy batch sync scripts (pull.sh, sync.sh)
 └── .gitignore            # Clean git exclusion rules

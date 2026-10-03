@@ -10,13 +10,13 @@ LOCK_FILE="/tmp/rclone_sync.lock"
 ERROR_FLAG_FILE="/tmp/.gdrive_sync_error"
 SUCCESS_FLAG_FILE="/tmp/.gdrive_sync_success"
 
-# جلوگیری از اجرای هم‌زمان با مکانیزم Lock
+# Prevent concurrent executions using an atomic lock directory
 if ! mkdir "${LOCK_FILE}" 2>/dev/null; then
     exit 0
 fi
 trap 'rm -rf "${LOCK_FILE}"' EXIT
 
-# اجرای rclone و دریافت کد خروجی بدون توقف زودهنگام اسکریپت
+# Execute rclone and capture exit status without premature script termination
 SYNC_ERR=0
 nice -n 19 rclone copy "${REMOTE_NAME}:${REMOTE_FOLDER}" "${LOCAL_PATH}" \
     --update \
@@ -30,17 +30,17 @@ if [ ${SYNC_ERR} -eq 0 ]; then
     rm -f "${ERROR_FLAG_FILE}"
     touch "${SUCCESS_FLAG_FILE}"
     
-    # پیام موفقیت به TTY فعال در صورت وجود
+    # Notify active TTY on success if available
     if [ -n "${TARGET_TTY}" ] && [ -w "${TARGET_TTY}" ]; then
         printf "\n\e[1;32m[✓ GDrive Sync]\e[0m Sync completed successfully at %s.\n" "${CURRENT_TIME}" > "${TARGET_TTY}"
     fi
 else
     rm -f "${SUCCESS_FLAG_FILE}"
     
-    # استخراج ۵ خط آخر لاگ
+    # Extract the last 5 lines from the log
     LAST_LOGS=$(tail -n 5 "${LOG_FILE}" 2>/dev/null || echo "No log entries found.")
 
-    # ذخیره پیام کامل خطا به همراه خطوط لاگ برای PROMPT_COMMAND
+    # Save comprehensive error details for PROMPT_COMMAND consumption
     cat << ERR_MSG > "${ERROR_FLAG_FILE}"
 \e[1;31m[✗ GDrive Sync]\e[0m Sync failed (exit code: ${SYNC_ERR}) at ${CURRENT_TIME}.
 \e[1;33m--- Last 5 lines from ${LOG_FILE} ---\e[0m
@@ -48,7 +48,7 @@ ${LAST_LOGS}
 \e[1;33m---------------------------------------\e[0m
 ERR_MSG
 
-    # در صورت وجود ترمینال فعال، خطا بلافاصله به TTY نیز ارسال شود
+    # Print error notification directly to active TTY if available
     if [ -n "${TARGET_TTY}" ] && [ -w "${TARGET_TTY}" ]; then
         printf "\n%b\n" "$(<"${ERROR_FLAG_FILE}")" > "${TARGET_TTY}"
     fi

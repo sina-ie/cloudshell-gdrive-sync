@@ -4,23 +4,29 @@ set -Eeuo pipefail
 REPO_NAME="${1:-my-private-app}"
 PROJECT_DIR="${HOME}/${REPO_NAME}"
 
-echo "==> ۱. بررسی دسترسی به GitHub CLI..."
+echo "==> 1. Verifying GitHub CLI authentication..."
 if ! gh auth status >/dev/null 2>&1; then
-    echo "لطفاً ابتدا لاگین گیت‌هاب را تکمیل کنید:"
+    echo "Please complete GitHub authentication first:"
     gh auth login -w -p https
 fi
 
-echo "==> ۲. ایجاد ساختار استاندارد پروژه در: ${PROJECT_DIR}"
+echo "==> 2. Creating standard project scaffold at: ${PROJECT_DIR}"
 mkdir -p "${PROJECT_DIR}"/{src,tests,.vscode,.github/workflows}
 cd "${PROJECT_DIR}"
 
 git init -b main
 
-# تنظیم مشخصات پیش‌فرض گیت در صورت عدم تنظیم قبلی
-git config user.name "$(gh api user --jq .name || echo 'Developer')"
-git config user.email "$(gh api user --jq .email || echo 'dev@example.com')"
+# Configure Git user identity if not already set
+if [ -z "$(git config --get user.name || true)" ]; then
+    GH_NAME="$(gh api user --jq '.name // empty' 2>/dev/null || true)"
+    git config user.name "${GH_NAME:-Developer}"
+fi
+if [ -z "$(git config --get user.email || true)" ]; then
+    GH_EMAIL="$(gh api user --jq '.email // empty' 2>/dev/null || true)"
+    git config user.email "${GH_EMAIL:-developer@example.com}"
+fi
 
-# ایجاد .gitignore استاندارد
+# Create standard .gitignore
 cat << 'GITIGNORE' > .gitignore
 __pycache__/
 *.pyc
@@ -36,36 +42,36 @@ build/
 node_modules/
 GITIGNORE
 
-# ایجاد README حرفه‌ای
+# Create project README
 cat << README > README.md
 # ${REPO_NAME}
 
-مخزن خصوصی مدیریت و توسعه پروژه در Cloud Shell.
+Private workspace repository developed and managed within Google Cloud Shell.
 
-## ساختار پروژه
-- \`src/\`: کدهای اصلی برنامه
-- \`tests/\`: تست‌های واحد و یکپارچگی
-- \`.vscode/\`: تنظیمات اجرای مستقیم کدها از طریق ادیتور
+## Structure
+- \`src/\`: Core application source files
+- \`tests/\`: Unit and integration test suites
+- \`.vscode/\`: Editor execution and debugging configurations
 
-## نحوه اجرا
-برای اجرای برنامه، فایل مورد نظر را در ادیتور باز کرده و کلید **F5** را فشار دهید یا از منوی **Run and Debug** گزینه **Run Current File** را انتخاب کنید.
+## Execution
+Open the target file in Cloud Shell Editor and press **F5**, or navigate to **Run and Debug** and choose **Run Current File**.
 README
 
-# نمونه کد اجرایی در src/main.py
+# Generate boilerplate entrypoint in src/main.py
 cat << 'CODE' > src/main.py
 #!/usr/bin/env python3
 import sys
 
 def main():
-    print("برنامه با موفقیت از محیط ادیتور اجرا شد!")
-    print(f"نسخه پایتون: {sys.version.split()[0]}")
+    print("Application executed successfully from the Cloud Shell editor environment!")
+    print(f"Python version: {sys.version.split()[0]}")
 
 if __name__ == "__main__":
     main()
 CODE
 chmod +x src/main.py
 
-# پیکربندی VS Code جهت اجرای مستقیم با کلید میانبر و دکمه Play ادیتور
+# Configure VS Code debugging and tasks for instant execution
 cat << 'LAUNCH' > .vscode/launch.json
 {
     "version": "0.2.0",
@@ -102,7 +108,7 @@ cat << 'TASKS' > .vscode/tasks.json
 }
 TASKS
 
-# نمونه اکشن GitHub برای تست خودکار CI
+# GitHub Actions CI workflow
 cat << 'WORKFLOW' > .github/workflows/ci.yml
 name: CI Pipeline
 
@@ -125,20 +131,20 @@ jobs:
         run: python src/main.py
 WORKFLOW
 
-echo "==> ۳. کامیت و ثبت تغییرات محلی..."
+echo "==> 3. Staging and committing initial project structure..."
 git add .
 git commit -m "feat: initial professional repository structure"
 
-echo "==> ۴. ساخت مخزن Private در گیت‌هاب و ارسال کدها..."
+echo "==> 4. Creating private GitHub repository and pushing codebase..."
 gh repo create "${REPO_NAME}" --private --source=. --remote=origin --push
 
-echo "==> ۵. باز کردن محیط در ادیتور Cloud Shell..."
+echo "==> 5. Launching workspace in Cloud Shell Editor..."
 if command -v cloudshell >/dev/null 2>&1; then
     cloudshell workspace "${PROJECT_DIR}"
     cloudshell edit "${PROJECT_DIR}/src/main.py"
 fi
 
 echo "=========================================================="
-echo "پروژه ${REPO_NAME} با موفقیت ساخته شد و در گیت‌هاب پرایویت قرار گرفت."
-echo "مسیر پروژه: ${PROJECT_DIR}"
+echo "Project '${REPO_NAME}' successfully initialized and published to private GitHub repository."
+echo "Workspace location: ${PROJECT_DIR}"
 echo "=========================================================="

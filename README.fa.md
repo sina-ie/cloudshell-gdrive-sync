@@ -1,51 +1,51 @@
-# پل ارتباطی ابری یکپارچه کلود شل و گوگل درایو (FUSE VFS)
+# Cloud Shell & Google Drive Architecture & Engineering Guide (FUSE VFS)
 
-یک راهکار پایدار، بلادرنگ و دوطرفه برای اتصال فضای ابری **Google Drive** به محیط توسعه **Google Cloud Shell** بر پایه ابزار `rclone` و فایل‌سیستم مجازی `FUSE3` با مدیریت کش محلی VFS و مکانیزم خودترمیمی خودکار.
-
----
-
-## چرا این معماری؟
-
-روش‌های سنتی متکی به اسکریپت‌های دسته‌ای (Batch Sync) مانند `pull.sh` و `sync.sh` با چالش‌های اساسی زیر روبرو هستند:
-1. **عدم هماهنگی بلادرنگ:** تغییرات تا زمان اجرای دستی دستور بعدی روی سمت دیگر اعمال نمی‌شوند.
-2. **خطر حذف ناخواسته فایل‌ها (Data Overwrite):** سینک‌های یک‌طرفه در صورت عدم هماهنگی نسخه‌ها می‌توانند کدهای جدید را بازنویسی یا حذف کنند.
-3. **ناسازگاری با ادیتورها:** امکان باز کردن و ذخیره مستقیم پروژه‌ها در محیط ادیتور Cloud Shell وجود ندارد.
-
-### راهکار FUSE:
-در این معماری، گوگل درایو مستقیماً به عنوان یک پوشه محلی به آدرس `~/drive_workspace` مانت می‌شود. تغییرات به صورت بلادرنگ در حافظه بافر ثبت شده و هم‌زمان بدون اشغال کردن ترمینال در فضای ابری گوگل بارگذاری می‌گردند.
+A resilient, real-time, bidirectional filesystem integration connecting **Google Drive** to **Google Cloud Shell** using `rclone`, `FUSE3`, and full VFS local caching with autonomous self-healing capabilities.
 
 ---
 
-## ویژگی‌ها و قابلیت‌های کلیدی
+## Why This Architecture?
 
-* **همگام‌سازی بلادرنگ دوطرفه:** اعمال آنی تغییرات از سمت ترمینال و وب‌سایت گوگل درایو.
-* **ایزوله‌سازی هوشمند مسیر مانت:** اتصال فایل‌سیستم در مسیر موقت `/tmp/drive_workspace` و ایجاد سیم‌لینک در `~/drive_workspace` جهت جلوگیری از ایجاد خطای سینتکس در ابزار سنجش سهمیه دیسک کلود شل (`bash: ((: ... >= 95)`).
-* **مدیریت پهنای باند و منابع دیسک:** محدود شدن کش محلی به حداکثر ۲ گیگابایت (`--vfs-cache-max-size 2G`) جهت جلوگیری از پر شدن حافظه پایدار ۵ گیگابایتی کلود شل.
-* **اتصال و قطع اتصال خودکار:** بازیابی مانت در زمان ورود به نشست و خروج ایمن در زمان بسته شدن شل از طریق تله‌های سیستمی (`trap`).
-* **ناظر دائمی سلامت و خودترمیمی (Watchdog):** اسکریپت `health_check.sh` وضعیت پاسخ‌دهی FUSE را هر ۶۰ ثانیه تست کرده و در صورت بروز فریز یا قطع شبکه، مانت را بدون نیاز به دخالت کاربر ریست می‌کند.
+Traditional batch synchronization scripts (`pull.sh` and `sync.sh`) suffer from critical operational limitations:
+1. **Lack of Real-Time Consistency:** Changes are not propagated until a batch command is manually or periodically executed.
+2. **Risk of Accidental Data Overwrites:** Unidirectional mirrors can overwrite or delete recent remote modifications.
+3. **Editor Incompatibility:** Cloud Shell Editor cannot seamlessly read and write directly to the workspace without sync conflicts.
+
+### The FUSE Solution:
+Google Drive is mounted as a local POSIX filesystem at `~/drive_workspace`. Writes are recorded instantaneously in a local cache buffer and uploaded asynchronously without blocking terminal sessions.
 
 ---
 
-## ساختار فایل‌های پروژه
+## Core Features & Design Principles
+
+* **Real-Time Bidirectional Sync:** File changes reflect instantly between Cloud Shell and Google Drive.
+* **Mount Isolation Strategy:** Mounting to `/tmp/drive_workspace` and exposing via a symlink at `~/drive_workspace` prevents syntax errors in Cloud Shell's internal disk quota checker (`bash: ((: ... >= 95)`).
+* **Disk Quota Protection:** Local cache is strictly capped at 2GB (`--vfs-cache-max-size 2G`) to protect Cloud Shell's 5GB home directory limit.
+* **Lifecycle Automation:** Automatic mount restoration upon shell startup and safe unmounting via `trap` upon shell exit.
+* **Autonomous Watchdog Daemon:** `health_check.sh` verifies filesystem responsiveness every 60 seconds and automatically recovers broken endpoints without manual intervention.
+
+---
+
+## Directory Layout
 
 ```text
 cloudshell-gdrive-sync/
-├── mount.sh              # اسکریپت اصلی راه‌اندازی مانت در حالت Daemon
-├── unmount.sh            # اسکریپت خروج ایمن و تخلیه بافر کش
-├── health_check.sh       # ناظر دوره‌ای سلامت و خودترمیمی خودکار
-├── setup_project.sh      # اسکریپت آماده‌سازی اولیه مخزن
-├── README.md             # مستندات کامل پروژه به زبان انگلیسی
-├── README.fa.md          # همین فایل (مستندات فارسی)
-├── CHAT_HISTORY.md       # مستند جامع جلسات توسعه و راهنمای از سرگیری
-├── legacy_scripts/       # اسکریپت‌های آرشیوشده سنتی (pull.sh و sync.sh)
-└── .gitignore            # قوانین فیلتر فایل‌های موقت گیت
+├── mount.sh              # Primary daemon bootstrap mounting script
+├── unmount.sh            # Safe teardown and cache-flushing script
+├── health_check.sh       # Periodic health monitor and self-healing watchdog
+├── setup_project.sh      # Private workspace generator for GitHub
+├── README.md             # Main repository guide
+├── README.fa.md          # Supplementary engineering specifications
+├── CHAT_HISTORY.md       # Technical handover and architecture changelog
+├── legacy_scripts/       # Archived v1 batch scripts (pull.sh, sync.sh)
+└── .gitignore            # Repository artifact ignore rules
 ```
 
 ---
 
-## راهنمای راه‌اندازی سریع
+## Quick Deployment Guide
 
-### ۱. نصب پیش‌نیازها
+### 1. Install Dependencies
 ```bash
 sudo apt-get update -qq && sudo apt-get install -y -qq fuse3 rclone
 ```
@@ -71,17 +71,17 @@ chmod +x ~/cloudshell-gdrive-sync/*.sh
 # ==========================================================
 alias cddrive="cd ~/drive_workspace"
 
-# ۱. اتصال خودکار در هنگام ورود به ترمینال
+# 1. Automatically mount on shell startup
 if [ -x "${HOME}/cloudshell-gdrive-sync/mount.sh" ]; then
     "${HOME}/cloudshell-gdrive-sync/mount.sh" >/dev/null 2>&1 &
 fi
 
-# ۲. اجرای خودکار ناظر سلامت در پس‌زمینه
+# 2. Launch health check watchdog daemon
 if [ -x "${HOME}/cloudshell-gdrive-sync/health_check.sh" ]; then
     nohup "${HOME}/cloudshell-gdrive-sync/health_check.sh" --daemon >/dev/null 2>&1 &
 fi
 
-# ۳. قطع اتصال امن هنگام خروج از سشن
+# 3. Safely unmount upon session exit
 _cleanup_gdrive_mount() {
     if [ -x "${HOME}/cloudshell-gdrive-sync/unmount.sh" ]; then
         "${HOME}/cloudshell-gdrive-sync/unmount.sh" >/dev/null 2>&1

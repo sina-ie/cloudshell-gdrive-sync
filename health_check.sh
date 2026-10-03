@@ -54,8 +54,8 @@ recover_mount() {
         fusermount3 -u -z "${REAL_MOUNT_POINT}" 2>/dev/null || true
     fi
 
-    # Clean up any hanging rclone processes
-    killall -9 rclone 2>/dev/null || true
+    # Clean up any hanging rclone processes targeting this workspace
+    pkill -9 -f "rclone mount.*${REAL_MOUNT_POINT}" 2>/dev/null || true
     sleep 1
 
     # Remount Google Drive workspace
